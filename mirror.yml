@@ -1,0 +1,161 @@
+# Copyright 2015-2016 Harri Kapanen <harri.kapanen@iki.fi>
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+- hosts: all
+  remote_user: pi
+  gather_facts: yes
+  sudo: yes
+
+# Public variables
+  vars:
+    - hostname: mirror
+    - timezone: Europe/Helsinki
+    - nodejs_armv7_version: 10.x
+    - mm2_path: /opt/MagicMirror
+    - mm2_user: pi
+    - mm2_group: pi
+    - mm2_display_rotation: 3 # 0=normal, 1=90, 2=180, 3=270 degrees
+
+  vars_files:
+    - mirror-secrets.yml
+
+  roles:
+    - common
+    - wificlient
+    - node      
+
+  handlers:
+    - include: ../../handlers/handlers.yml
+
+  tasks:
+    # Install Magic mirror
+    - name: Make app dir
+      file: path={{ mm2_path }} state=directory mode=0755 owner={{ mm2_user }} group={{ mm2_group }}
+
+    - name: Pull sources from the repository
+      git: repo=https://github.com/MichMich/MagicMirror.git dest={{ mm2_path }} force=yes version=master
+      become_user: "{{ mm2_user }}"
+      register: mm2_git_pull
+
+    - name: Install npm packages
+      shell: chdir={{ mm2_path }} npm install
+      become_user: "{{ mm2_user }}"
+      when: mm2_git_pull.changed
+
+    # Default config if custom is not defined
+    - name: Copy default settings
+      copy:
+        src: /opt/MagicMirror/config/config.js.sample
+        dest: /opt/MagicMirror/config/config.js
+        mode: 0644
+        owner: "{{ mm2_user }}"
+        remote_src: true
+      when: mm2_config_file_file is not defined
+      register: mm2_config_file
+
+    # Default setting if custom exists
+    - name: Copy custom magicmirror settings
+      copy:
+        src: '{{ mm2_config_file_file }}'
+        dest: /opt/MagicMirror/config/config.js
+        mode: 0644
+        owner: "{{ mm2_user }}"
+      when: mm2_config_file_file is defined
+      register: mm2_config_file
+
+    # Create service unit file
+    - name: Create MagicMirror unit file
+      copy:
+        dest: /etc/systemd/system/MagicMirror.service
+        content: |
+          [Unit]
+          Description=MagicMirror
+
+          [Service]
+          ExecStart=/usr/bin/npm start
+          WorkingDirectory={{ mm2_path }}
+          User={{ mm2_user }}
+          Group={{ mm2_user }}
+          StandardOutput=syslog
+          StandardError=syslog
+          Environment=NODE_ENV=production
+          Environment=DISPLAY=:0
+          Restart=always
+          RestartSec=5
+          
+          [Install]
+          WantedBy=multi-user.target
+      register: mm2_unit_file
+
+    # Setup display
+    - name: Set display rotation and remove boot gfx 
+      lineinfile: 
+        dest: /boot/config.txt
+        line: '{{ item }}'
+      with_items:
+        - 'dtoverlay=vc4-fkms-v3d'
+        - 'display_rotate= {{ mm2_display_rotation }}'
+        - 'avoid_warnings=1'
+      become: true
+      notify: reboot
+
+    # Hide mouse cursor
+    - name: Install unclutter
+      apt: pkg=unclutter state=latest
+      become: true
+      notify: reboot
+
+    - name: Configure unclutter
+      lineinfile: 
+        dest: '/home/{{ mm2_user }}/.config/lxsession/LXDE-pi/autostart'
+        line: '@unclutter -display :0 -idle 3 -root -noevents'
+        create: yes
+      notify: reboot
+
+    # Disable screensaver
+    - name: Disable screensaver - configure lxsession
+      lineinfile: 
+        dest: '/home/{{ mm2_user }}/.config/lxsession/LXDE-pi/autostart'
+        line: '{{ item }}'
+        create: yes
+      with_items:
+        - '@xset s noblank'
+        - '@xset s off'
+        - '@xset -dpms'
+      notify: reboot
+
+    - name: Disable screensaver - configure lightdm.conf
+      ini_file:
+        path: /etc/lightdm/lightdm.conf
+        section: SeatDefaults
+        option: 'xserver-command'
+        value: 'X -s 0 -dpms'
+      become: true
+      notify: reboot
+
+    # Disable wifi power saving (Raspbian Stretch)
+    - name: wlan power saving disable script
+      copy:
+        dest: /etc/network/if-up.d/off-power-manager mode=755
+        content: |
+          #!/bin/sh
+          iw dev wlan0 set power_save off
+      become: true
+      notify: restart-networking
+
+    # Enable and start the service
+    - name: Enable MagicMirror and start it
+      service: name=MagicMirror daemon_reload=yes state=restarted enabled=yes
+      when: (mm2_unit_file is defined and mm2_unit_file.changed) or (mm2_config_file is defined and mm2_config_file.changed)
