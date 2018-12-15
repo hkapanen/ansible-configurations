@@ -27,6 +27,7 @@
     - mm2_user: pi
     - mm2_group: pi
     - mm2_display_rotation: 3 # 0=normal, 1=90, 2=180, 3=270 degrees
+    - mm2_config_file: mirror-conf.js
 
   vars_files:
     - mirror-secrets.yml
@@ -40,7 +41,7 @@
     - include: ../../handlers/handlers.yml
 
   tasks:
-    # Install Magic mirror
+    # MAGICMIRROR
     - name: Make app dir
       file: path={{ mm2_path }} state=directory mode=0755 owner={{ mm2_user }} group={{ mm2_group }}
 
@@ -54,6 +55,32 @@
       become_user: "{{ mm2_user }}"
       when: mm2_git_pull.changed
 
+    # MODULES
+
+    # mmm-weathercharts
+    - name: create directory for mmm-weatherchart
+      file: path={{ mm2_path }}/modules/mmm-weatherchart state=directory mode=0755 owner={{ mm2_user }} group={{ mm2_group }}
+
+    - name: Download mmm-weatherchart
+      git: repo=https://github.com/paphko/mmm-weatherchart.git dest={{ mm2_path }}/modules/mmm-weatherchart force=yes version=master
+      become_user: "{{ mm2_user }}"
+
+    # MMM-Hsl-stops (NOTE: this is not the origin, PRs pending)
+    - name: create directory for MMM-Hsl-stops
+      file: path={{ mm2_path }}/modules/MMM-Hsl-stops state=directory mode=0755 owner={{ mm2_user }} group={{ mm2_group }}
+
+    - name: Download MMM-Hsl-stops
+      git: repo=https://github.com/jannekalliola/MMM-Hsl-stops.git dest={{ mm2_path }}/modules/MMM-Hsl-stops force=yes version=master
+      become_user: "{{ mm2_user }}"
+      register: MMM_Hsl_stops_pull
+
+    - name: Install MMM-Hsl-stops
+      shell: chdir={{ mm2_path }}/modules/MMM-Hsl-stops npm install
+      become_user: "{{ mm2_user }}"
+      when: MMM_Hsl_stops_pull.changed
+
+    # MAGICMIRROR CONFIG
+
     # Default config if custom is not defined
     - name: Copy default settings
       copy:
@@ -62,20 +89,20 @@
         mode: 0644
         owner: "{{ mm2_user }}"
         remote_src: true
-      when: mm2_config_file_file is not defined
-      register: mm2_config_file
+      when: mm2_config_file is not defined
+      register: mm2_config_change
 
     # Default setting if custom exists
     - name: Copy custom magicmirror settings
       copy:
-        src: '{{ mm2_config_file_file }}'
+        src: ./{{ mm2_config_file }}
         dest: /opt/MagicMirror/config/config.js
         mode: 0644
         owner: "{{ mm2_user }}"
-      when: mm2_config_file_file is defined
-      register: mm2_config_file
+      when: mm2_config_file is defined
+      register: mm2_config_change
 
-    # Create service unit file
+    # SERVICE UNIT FILE
     - name: Create MagicMirror unit file
       copy:
         dest: /etc/systemd/system/MagicMirror.service
@@ -99,7 +126,7 @@
           WantedBy=multi-user.target
       register: mm2_unit_file
 
-    # Setup display
+    # DISPLAY THINGIES
     - name: Set display rotation and remove boot gfx 
       lineinfile: 
         dest: /boot/config.txt
@@ -145,7 +172,7 @@
       become: true
       notify: reboot
 
-    # Disable wifi power saving (Raspbian Stretch)
+    # WIFI POWER SAVE OFF (Raspbian Stretch)
     - name: wlan power saving disable script
       copy:
         dest: /etc/network/if-up.d/off-power-manager mode=755
@@ -155,7 +182,7 @@
       become: true
       notify: restart-networking
 
-    # Enable and start the service
+    # ENABLE AND START THE SERVICE
     - name: Enable MagicMirror and start it
       service: name=MagicMirror daemon_reload=yes state=restarted enabled=yes
-      when: (mm2_unit_file is defined and mm2_unit_file.changed) or (mm2_config_file is defined and mm2_config_file.changed)
+      when: (mm2_unit_file is defined and mm2_unit_file.changed) or (mm2_config_change is defined)
