@@ -64,11 +64,10 @@
       git: repo=https://github.com/paphko/mmm-weatherchart.git dest={{ mm2_path }}/modules/mmm-weatherchart force=yes version=master
       become_user: "{{ mm2_user }}"
 
-    # MMM-Hsl-stops (NOTE: this is not the origin, PRs pending)
     - name: create directory for MMM-Hsl-stops
       file: path={{ mm2_path }}/modules/MMM-Hsl-stops state=directory mode=0755 owner={{ mm2_user }} group={{ mm2_group }}
 
-    - name: Download MMM-Hsl-stops
+    - name: Download MMM-Hsl-stops      # NOTE: jannekalliola is not the origin, PRs pending
       git: repo=https://github.com/jannekalliola/MMM-Hsl-stops.git dest={{ mm2_path }}/modules/MMM-Hsl-stops force=yes version=master
       become_user: "{{ mm2_user }}"
       register: MMM_Hsl_stops_pull
@@ -78,8 +77,33 @@
       become_user: "{{ mm2_user }}"
       when: MMM_Hsl_stops_pull.changed
 
-    # MAGICMIRROR CONFIG
+    # MMM-PIR-Sensor
+    - name: create directory for MMM-PIR-Sensor
+      file: path={{ mm2_path }}/modules/MMM-PIR-Sensor state=directory mode=0755 owner={{ mm2_user }} group={{ mm2_group }}
 
+    - name: Download MMM-PIR-Sensor
+      git: repo=https://github.com/paviro/MMM-PIR-Sensor.git dest={{ mm2_path }}/modules/MMM-PIR-Sensor force=yes version=master
+      become_user: "{{ mm2_user }}"
+      register: MMM_PIR_Sensor_pull
+
+    - name: Install MMM-PIR-Sensor
+      shell: chdir={{ mm2_path }}/modules/MMM-PIR-Sensor npm install
+      become_user: "{{ mm2_user }}"
+      when: MMM_PIR_Sensor_pull.changed
+
+    - name: Add user to GPIO group
+      user: name={{ mm2_user }} groups=gpio append=yes
+
+    - name: Set some file perms
+      file: 
+        path: "{{ item }}"
+        mode: "u+s"
+      with_items:
+        - "/opt/vc/bin/tvservice"
+        - "/bin/chvt"
+      notify: reboot
+
+    # MAGICMIRROR CONFIG FILE
     - name: Copy custom magicmirror settings
       template:
         src: ./mirror-conf.js.j2
