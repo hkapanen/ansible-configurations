@@ -27,7 +27,6 @@
     - mm2_group: pi
     - mm2_path: /home/{{ mm2_user }}/MagicMirror # some modules expect users home tree
     - mm2_display_rotation: 3 # 0=normal, 1=90, 2=180, 3=270 degrees
-    - mm2_config_file: mirror-conf.js
 
   vars_files:
     - mirror-secrets.yml
@@ -81,25 +80,12 @@
 
     # MAGICMIRROR CONFIG
 
-    # Default config if custom is not defined
-    - name: Copy default settings
-      copy:
-        src: '{{ mm2_path }}/config/config.js.sample'
-        dest: '{{ mm2_path }}/config/config.js'
-        mode: 0644
-        owner: "{{ mm2_user }}"
-        remote_src: true
-      when: mm2_config_file is not defined
-      register: mm2_config_change
-
-    # Default setting if custom exists
     - name: Copy custom magicmirror settings
-      copy:
-        src: ./{{ mm2_config_file }}
+      template:
+        src: ./mirror-conf.js.j2
         dest: '{{ mm2_path }}/config/config.js'
         mode: 0644
         owner: "{{ mm2_user }}"
-      when: mm2_config_file is defined
       register: mm2_config_change
 
     # SERVICE UNIT FILE
