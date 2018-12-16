@@ -23,9 +23,9 @@
     - hostname: mirror
     - timezone: Europe/Helsinki
     - nodejs_armv7_version: 10.x
-    - mm2_path: /opt/MagicMirror
     - mm2_user: pi
     - mm2_group: pi
+    - mm2_path: /home/{{ mm2_user }}/MagicMirror # some modules expect users home tree
     - mm2_display_rotation: 3 # 0=normal, 1=90, 2=180, 3=270 degrees
     - mm2_config_file: mirror-conf.js
 
@@ -84,8 +84,8 @@
     # Default config if custom is not defined
     - name: Copy default settings
       copy:
-        src: /opt/MagicMirror/config/config.js.sample
-        dest: /opt/MagicMirror/config/config.js
+        src: '{{ mm2_path }}/config/config.js.sample'
+        dest: '{{ mm2_path }}/config/config.js'
         mode: 0644
         owner: "{{ mm2_user }}"
         remote_src: true
@@ -96,7 +96,7 @@
     - name: Copy custom magicmirror settings
       copy:
         src: ./{{ mm2_config_file }}
-        dest: /opt/MagicMirror/config/config.js
+        dest: '{{ mm2_path }}/config/config.js'
         mode: 0644
         owner: "{{ mm2_user }}"
       when: mm2_config_file is defined

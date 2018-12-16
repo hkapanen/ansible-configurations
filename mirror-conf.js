@@ -77,11 +77,9 @@ var config = {
 				updateInterval: 60 * 60 * 1000, // update every hour
 				hideBorder: true, // whether or not a border with city name should be shown
 				negativeImage: true, // whether or not the default white image should be inverted
-				mmDirectory: "/opt/MagicMirror/" // required for caching; adjust if it differs
 			}
 		},
 	]
-
 };
 
 /*************** DO NOT EDIT THE LINE BELOW ***************/
