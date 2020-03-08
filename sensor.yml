@@ -1,0 +1,107 @@
+# Copyright 2018 Harri Kapanen <harri.kapanen@iki.fi>
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+
+- hosts: all
+  remote_user: pi
+  gather_facts: yes
+  become: yes
+
+  vars:
+    - hostname: sensor
+    - apt_upgrade: true
+    - timezone: Europe/Helsinki
+
+  vars_files:
+    - secrets.yml
+
+  roles:
+#    - common
+    - role: node-app
+      node_app_name: "rtl_433_to_mqtt"
+      node_app_git_repo: "https://github.com/hkapanen/rtl_433_to_mqtt.git"
+      node_app_use_socket: false
+      node_app_main: "index.js"
+      node_app_env:
+        - MQTT_BROKER={{ karila_mqtt_broker }}
+        - MQTT_USERNAME={{ karila_mqtt_username }}
+        - MQTT_PASSWORD={{ karila_mqtt_password }}
+        - MQTT_TOPIC='rtl_433'
+        - RTL433_PARAMS='-s 1024k'
+
+  tasks:
+    - name: Create rtl_433_to_mqtt systemd timer file
+      copy:
+        dest: /lib/systemd/system/rtl_433_to_mqtt.timer
+        content: |
+          [Unit]
+          Description=Restart rtl_433_to_mqtt nightly
+
+          [Timer]
+          OnCalendar=*-*-* 01:01:01
+          Persistent=true
+
+          [Install]
+          WantedBy=timers.target
+      register: rtl_433_to_mqtt_timer_changed
+
+    - name: Install/update RTL_433 dependencies and mosquitto client
+      apt: 
+        pkg:
+        - libtool
+        - libusb-dev
+        - librtlsdr-dev
+        - rtl-sdr
+        - cmake
+        - mosquitto-clients
+
+    - name: Download rtl_433
+      git: repo=https://github.com/merbanan/rtl_433.git dest=/home/{{ ansible_ssh_user }}/rtl_433 clone=yes force=yes
+      become: no
+      register: rtl433_sources
+
+    - name: Create build dir for rtl_433
+      file: path=/home/{{ ansible_ssh_user }}/rtl_433/build state=directory owner={{ ansible_ssh_user }} mode=0755
+      become: no
+
+    - name: Configure rtl_433
+      command: cmake ../
+      args:
+        chdir: "/home/{{ ansible_ssh_user }}/rtl_433/build"
+      become: no
+      when: rtl433_sources.changed
+
+    - name: Compile rtl_433
+      command: make
+      args:
+        chdir: "/home/{{ ansible_ssh_user }}/rtl_433/build"
+      become: no
+      when: rtl433_sources.changed
+
+    - name: Install rtl_433
+      command: make install
+      args:
+        chdir: "/home/{{ ansible_ssh_user }}/rtl_433/build"
+      when: rtl433_sources.changed
+
+# Enable and start rtl_433_to_mqtt timers. Corresponding service is taken care of by the node_app role.
+    - name: "Enable and start rtl_433_to_mqtt timer"
+      command: "{{ item }}"
+      with_items:
+        - systemctl enable rtl_433_to_mqtt.timer
+        - systemctl start rtl_433_to_mqtt.timer
+      when: rtl_433_to_mqtt_timer_changed
+
+  handlers:
+    - include: ../../handlers/handlers.yml
