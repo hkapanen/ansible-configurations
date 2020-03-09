@@ -106,7 +106,7 @@
     # MAGICMIRROR CONFIG FILE
     - name: Copy custom magicmirror settings
       template:
-        src: ./mirror-conf.js.j2
+        src: ./conf/mirror-conf.js.j2
         dest: '{{ mm2_path }}/config/config.js'
         mode: 0644
         owner: "{{ mm2_user }}"
