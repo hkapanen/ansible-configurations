@@ -1,0 +1,49 @@
+{
+  "enabled": true,
+  "enableLogging": false,
+  "configuration": {
+    "default_ttl": 0,
+    "engine_instances": "VP2020",
+    "battery_instances": "house, starter",
+    "tank_instances": "fuel, water.bow, water.aft, septic",
+    "air": {
+      "Air density": false,
+      "dewPoint": false,
+      "Wind Chill": false
+    },
+    "electrical": {
+      "batterPower0": false
+    },
+    "depth": {
+      "belowKeel": false,
+      "belowKeel_2": false,
+      "belowSurface": false
+    },
+    "propulsion": {
+      "economyport": false,
+      "economystarboard": false,
+      "propslipport": false,
+      "propslipstarboard": false
+    },
+    "wind": {
+      "groundWind": false,
+      "trueWind": true,
+      "directionTrue": false,
+      "directionMagnetic2": false,
+      "directionMagnetic": false,
+      "windShift": false
+    },
+    "sun": {
+      "Sun": false
+    },
+    "tanks": {
+      "tankVolume_fuel.0": false,
+      "volume_unit": "litres",
+      "tankVolume_fuel.1": false
+    },
+    "vmg": {
+      "vmg_Course": true,
+      "vmg_Wind": true
+    }
+  }
+}

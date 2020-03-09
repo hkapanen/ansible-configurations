@@ -1,0 +1,86 @@
+# Copyright 2018 Harri Kapanen <harri.kapanen@iki.fi>
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+
+- hosts: all
+  remote_user: pi
+  gather_facts: yes
+  become: yes
+
+  vars:
+    - hostname: frida
+    - apt_upgrade: true
+    - timezone: Europe/Helsinki
+    - nodejs_armv7_version: 9.x
+    - nodejs_cap_net_raw_capabilities: true
+    - router_ip_address: 192.168.74.1
+    - lan_ip_address: 192.168.74.10
+
+  vars_files:
+    - frida-secrets.yml
+
+  roles:
+    # - common
+    # - hotspot
+    # - role: nat_router
+    #   nat_router_local_interface: br0
+    #   nat_router_inet_interface: br0
+    #   nat_router_bridge_interfaces: 
+    #     - eth0
+    #     - wlan0
+    #   nat_router_ip: "{{ lan_ip_address }}"
+    #   nat_router_gateway: "{{ router_ip_address }}"
+    #   nat_router_dhcp_range: "192.168.74.100,192.168.74.150,24h"
+    #   nat_router_dhcp_options:
+    #     - "option:router,{{ router_ip_address }}"
+    #   nat_router_dns_servers:
+    #     - "62.241.198.245"   # DNA DNS1
+    #     - "62.241.198.246"   # DNA DNS2
+    #   nat_router_disable: true
+    # - role: signalk
+    #   signalk_settings_file: signalk-settings-frida.json
+    #   signalk_plugins: 
+    #     - set-system-time
+    #     - signalk-to-nmea0183
+    #     - signalk-derived-data
+    #     - aisreporter
+    #     - ais-forwarder
+    #     - vedirect-serial-usb
+    #     - signalk-ruuvitag-plugin
+    # - role: influxdb
+    - role: grafana
+      grafana_port: 3000
+
+  tasks:
+#    - name: Restart signalk-server
+#      service: name=signalk-server state=restarted
+
+    # udev rules for serial-usb devices
+#    - lineinfile: dest=/etc/udev/rules.d/98-frida-usb-devices.rules create=yes line="SUBSYSTEM==\"tty\", ATTRS{idVendor}==\"0403\", ATTRS{idProduct}==\"6001\", ATTRS{serial}==\"A7048CCB\", SYMLINK+=\"seatalk\""
+#    - lineinfile: dest=/etc/udev/rules.d/98-frida-usb-devices.rules line="SUBSYSTEM==\"tty\", ATTRS{idVendor}==\"0403\", ATTRS{idProduct}==\"6001\", ATTRS{serial}==\"FTYZZNM7\", SYMLINK+=\"vhf\""
+    - lineinfile: dest=/etc/udev/rules.d/98-frida-usb-devices.rules line="SUBSYSTEM==\"tty\", ATTRS{idVendor}==\"0403\", ATTRS{idProduct}==\"6001\", SYMLINK+=\"seatalk\""
+    - lineinfile: dest=/etc/udev/rules.d/98-frida-usb-devices.rules line="SUBSYSTEM==\"tty\", ATTRS{idVendor}==\"0403\", ATTRS{idProduct}==\"6001\", SYMLINK+=\"vhf\""
+    - lineinfile: dest=/etc/udev/rules.d/98-frida-usb-devices.rules line="SUBSYSTEM==\"tty\", ATTRS{idVendor}==\"1546\", ATTRS{idProduct}==\"01a8\", SYMLINK+=\"gps\""
+    - lineinfile: dest=/etc/udev/rules.d/98-frida-usb-devices.rules line="SUBSYSTEM==\"tty\", ATTRS{idVendor}==\"16d0\", ATTRS{idProduct}==\"0b03\", SYMLINK+=\"ais\""
+    - lineinfile: dest=/etc/udev/rules.d/98-frida-usb-devices.rules line="SUBSYSTEM==\"tty\", ATTRS{idVendor}==\"0403\", ATTRS{idProduct}==\"6015\", SYMLINK+=\"victron\""
+
+
+  handlers:
+    - include: ../../handlers/handlers.yml
+    - name: restart_bt
+      systemd: name=bluetooth state=restarted
+    - name: Restart signalk-server
+      service: name=signalk-server state=restarted
+      become: true

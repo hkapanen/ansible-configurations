@@ -1,0 +1,21 @@
+{
+  "enabled": true,
+  "enableLogging": false,
+  "configuration": {
+    "c19c7a9819f2": {
+      "enabled": true,
+      "name": "eka",
+      "location": "inside"
+    },
+    "f3b8c93756d4": {
+      "enabled": true,
+      "name": "toka",
+      "location": "inside"
+    },
+    "e5b8c9559940": {
+      "enabled": true,
+      "name": "kolmas",
+      "location": "inside"
+    }
+  }
+}
