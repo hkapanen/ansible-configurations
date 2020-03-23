@@ -27,7 +27,8 @@
     - secrets.yml
 
   roles:
-#    - common
+    - common
+    - glances
     - role: node-app
       node_app_name: "rtl_433_to_mqtt"
       node_app_git_repo: "https://github.com/hkapanen/rtl_433_to_mqtt.git"
