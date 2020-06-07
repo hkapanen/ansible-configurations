@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "enableLogging": true,
+  "enableLogging": false,
   "configuration": {
     "interval": 3600,
     "sudo": true
