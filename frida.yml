@@ -23,7 +23,6 @@
     - hostname: frida
     - apt_upgrade: true
     - timezone: Europe/Helsinki
-    - nodejs_armv7_version: 9.x
     - nodejs_cap_net_raw_capabilities: true
     - router_ip_address: 192.168.74.1
     - lan_ip_address: 192.168.74.10
@@ -32,50 +31,60 @@
     - frida-secrets.yml
 
   roles:
-    # - common
-    # - hotspot
-    # - role: nat_router
-    #   nat_router_local_interface: br0
-    #   nat_router_inet_interface: br0
-    #   nat_router_bridge_interfaces: 
-    #     - eth0
-    #     - wlan0
-    #   nat_router_ip: "{{ lan_ip_address }}"
-    #   nat_router_gateway: "{{ router_ip_address }}"
-    #   nat_router_dhcp_range: "192.168.74.100,192.168.74.150,24h"
-    #   nat_router_dhcp_options:
-    #     - "option:router,{{ router_ip_address }}"
-    #   nat_router_dns_servers:
-    #     - "62.241.198.245"   # DNA DNS1
-    #     - "62.241.198.246"   # DNA DNS2
-    #   nat_router_disable: true
-    # - role: signalk
-    #   signalk_settings_file: signalk-settings-frida.json
-    #   signalk_plugins: 
-    #     - set-system-time
-    #     - signalk-to-nmea0183
-    #     - signalk-derived-data
-    #     - aisreporter
-    #     - ais-forwarder
-    #     - vedirect-serial-usb
-    #     - signalk-ruuvitag-plugin
-    # - role: influxdb
+   - common
+   - hotspot
+    - role: nat_router
+      nat_router_local_interface: br0
+      nat_router_inet_interface: br0
+      nat_router_bridge_interfaces: 
+        - eth0
+        - wlan0
+      nat_router_ip: "{{ lan_ip_address }}"
+      nat_router_gateway: "{{ router_ip_address }}"
+      nat_router_dhcp_range: "192.168.74.50,192.168.74.90,24h"
+      nat_router_dhcp_options:
+        - "option:router,{{ router_ip_address }}"
+      nat_router_dns_servers:
+        - "193.210.19.19"   # Telia
+        - "8.8.8.8"          # Google
+      nat_router_disable: true
+    - role: signalk-npm
+      signalk_settings_file: conf/signalk-settings-frida.json
+      signalk_plugins: 
+        - plugin_name: "@signalk/set-system-time"
+          plugin_config_src: conf/set-system-time.json
+          plugin_config_dst: set-system-time.json
+        - plugin_name: "@signalk/signalk-to-nmea0183"
+          plugin_config_src: conf/sk-to-nmea0183.json
+          plugin_config_dst: sk-to-nmea0183.json
+        - plugin_name: "@signalk/aisreporter"
+          plugin_config_src: conf/aisreporter.json
+          plugin_config_dst: aisreporter.json
+        - plugin_name: "@signalk/vedirect-serial-usb"
+          plugin_config_src: conf/vedirect-signalk.json
+          plugin_config_dst: vedirect-signalk.json
+        - plugin_name: "signalk-derived-data"
+          plugin_config_src: conf/derived-data.json
+          plugin_config_dst: derived-data.json
+        - plugin_name: "ais-forwarder"
+          plugin_config_src: conf/ais-forwarder.json
+          plugin_config_dst: ais-forwarder.json
+        - plugin_name: "signalk-ruuvitag-plugin"
+          plugin_config_src: conf/ruuvitag.json
+          plugin_config_dst: ruuvitag.json
+    - role: influxdb
     - role: grafana
       grafana_port: 3000
 
   tasks:
-#    - name: Restart signalk-server
-#      service: name=signalk-server state=restarted
+    - name: Restart signalk-server
+      service: name=signalk-server state=restarted
 
     # udev rules for serial-usb devices
-#    - lineinfile: dest=/etc/udev/rules.d/98-frida-usb-devices.rules create=yes line="SUBSYSTEM==\"tty\", ATTRS{idVendor}==\"0403\", ATTRS{idProduct}==\"6001\", ATTRS{serial}==\"A7048CCB\", SYMLINK+=\"seatalk\""
-#    - lineinfile: dest=/etc/udev/rules.d/98-frida-usb-devices.rules line="SUBSYSTEM==\"tty\", ATTRS{idVendor}==\"0403\", ATTRS{idProduct}==\"6001\", ATTRS{serial}==\"FTYZZNM7\", SYMLINK+=\"vhf\""
-    - lineinfile: dest=/etc/udev/rules.d/98-frida-usb-devices.rules line="SUBSYSTEM==\"tty\", ATTRS{idVendor}==\"0403\", ATTRS{idProduct}==\"6001\", SYMLINK+=\"seatalk\""
-    - lineinfile: dest=/etc/udev/rules.d/98-frida-usb-devices.rules line="SUBSYSTEM==\"tty\", ATTRS{idVendor}==\"0403\", ATTRS{idProduct}==\"6001\", SYMLINK+=\"vhf\""
-    - lineinfile: dest=/etc/udev/rules.d/98-frida-usb-devices.rules line="SUBSYSTEM==\"tty\", ATTRS{idVendor}==\"1546\", ATTRS{idProduct}==\"01a8\", SYMLINK+=\"gps\""
-    - lineinfile: dest=/etc/udev/rules.d/98-frida-usb-devices.rules line="SUBSYSTEM==\"tty\", ATTRS{idVendor}==\"16d0\", ATTRS{idProduct}==\"0b03\", SYMLINK+=\"ais\""
-    - lineinfile: dest=/etc/udev/rules.d/98-frida-usb-devices.rules line="SUBSYSTEM==\"tty\", ATTRS{idVendor}==\"0403\", ATTRS{idProduct}==\"6015\", SYMLINK+=\"victron\""
-
+    - lineinfile: path=/etc/udev/rules.d/98-frida-usb-devices.rules create=yes line="SUBSYSTEM==\"tty\", ATTRS{idVendor}==\"0403\", ATTRS{idProduct}==\"6001\", SYMLINK+=\"seatalk\""
+    - lineinfile: path=/etc/udev/rules.d/98-frida-usb-devices.rules create=yes line="SUBSYSTEM==\"tty\", ATTRS{idVendor}==\"1546\", ATTRS{idProduct}==\"01a8\", SYMLINK+=\"gps\""
+    - lineinfile: path=/etc/udev/rules.d/98-frida-usb-devices.rules create=yes line="SUBSYSTEM==\"tty\", ATTRS{idVendor}==\"16d0\", ATTRS{idProduct}==\"0b03\", SYMLINK+=\"ais\""
+    - lineinfile: path=/etc/udev/rules.d/98-frida-usb-devices.rules create=yes line="SUBSYSTEM==\"tty\", ATTRS{idVendor}==\"0403\", ATTRS{idProduct}==\"6015\", SYMLINK+=\"victron\""
 
   handlers:
     - include: ../../handlers/handlers.yml
