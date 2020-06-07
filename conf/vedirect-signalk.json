@@ -1,0 +1,10 @@
+{
+  "enabled": true,
+  "enableLogging": false,
+  "configuration": {
+    "device": "/dev/victron",
+    "mainBatt": "House",
+    "auxBatt": "Starter",
+    "charger": "Charge"
+  }
+}
