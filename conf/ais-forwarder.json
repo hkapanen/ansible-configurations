@@ -1,0 +1,11 @@
+{
+  "enabled": true,
+  "enableLogging": false,
+  "configuration": {
+    "ipaddress": "5.9.207.224",
+    "port": 5844,
+    "aivdo": false,
+    "aivdm": true,
+    "lineDelimiter": "None"
+  }
+}
