@@ -20,6 +20,12 @@
         },
         "airHeight": {
           "value": 15.5
+        },
+        "aisShipType": {
+          "value": {
+            "name": "Sailing",
+            "id": 36
+          }
         }
       },
       "sensors": {
@@ -28,7 +34,7 @@
             "value": 6
           },
           "fromCenter": {
-            "value": 1.5
+            "value": 1.3
           }
         }
       }
@@ -47,8 +53,10 @@
               "validateChecksum": true,
               "type": "serial",
               "device": "/dev/ais",
-              "baudrate": 38400
-            }
+              "baudrate": 38400,
+              "providerId": "AIS"
+            },
+            "providerId": "AIS"
           }
         }
       ],
@@ -66,13 +74,18 @@
               "validateChecksum": true,
               "type": "serial",
               "device": "/dev/seatalk",
-              "baudrate": 4800
-            }
+              "baudrate": 4800,
+              "providerId": "Seatalk"
+            },
+            "providerId": "Seatalk"
           }
         }
       ],
       "enabled": true
     }
   ],
-  "interfaces": {}
+  "interfaces": {},
+  "security": {
+    "strategy": "./tokensecurity"
+  }
 }
