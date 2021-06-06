@@ -31,25 +31,11 @@
     - frida-secrets.yml
 
   roles:
-   - common
-   - hotspot
-    - role: nat_router
-      nat_router_local_interface: br0
-      nat_router_inet_interface: br0
-      nat_router_bridge_interfaces: 
-        - eth0
-        - wlan0
-      nat_router_ip: "{{ lan_ip_address }}"
-      nat_router_gateway: "{{ router_ip_address }}"
-      nat_router_dhcp_range: "192.168.74.50,192.168.74.90,24h"
-      nat_router_dhcp_options:
-        - "option:router,{{ router_ip_address }}"
-      nat_router_dns_servers:
-        - "193.210.19.19"   # Telia
-        - "8.8.8.8"          # Google
-      nat_router_disable: true
+    - common
+    - sailor-hat
     - role: signalk-npm
       signalk_settings_file: conf/signalk-settings-frida.json
+      signalk_security_file: conf/signalk-security.json
       signalk_plugins: 
         - plugin_name: "@signalk/set-system-time"
           plugin_config_src: conf/set-system-time.json
@@ -75,6 +61,22 @@
     - role: influxdb
     - role: grafana
       grafana_port: 3000
+    - hotspot
+    - role: nat_router
+      nat_router_local_interface: br0
+      nat_router_inet_interface: br0
+      nat_router_bridge_interfaces: 
+        - eth0
+        - wlan0
+      nat_router_ip: "{{ lan_ip_address }}"
+      nat_router_gateway: "{{ router_ip_address }}"
+      nat_router_dhcp_range: "192.168.74.50,192.168.74.90,24h"
+      nat_router_dhcp_options:
+        - "option:router,{{ router_ip_address }}"
+      nat_router_dns_servers:
+        - "193.210.19.19"   # Telia
+        - "8.8.8.8"          # Google
+      nat_router_disable: true
 
   tasks:
     - name: Restart signalk-server
