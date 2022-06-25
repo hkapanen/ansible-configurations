@@ -1,0 +1,17 @@
+{
+    "configuration": {
+      "protocol": "http",
+      "host": "localhost",
+      "port": 8086,
+      "database": "Frida",
+      "batchWriteInterval": 10,
+      "resolution": 200,
+      "recordTrack": true,
+      "separateLatLon": false,
+      "overrideTimeWithNow": false,
+      "storeOthers": false,
+      "blackOrWhite": "Black"
+    },
+    "enabled": true
+} 
+ 
