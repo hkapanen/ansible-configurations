@@ -1,11 +1,16 @@
 {
-  "enabled": true,
-  "enableLogging": false,
   "configuration": {
-    "ipaddress": "5.9.207.224",
-    "port": 5844,
+    "endpoints": [
+      {
+        "ipaddress": "5.9.207.224",
+        "port": 5844
+      }
+    ],
+    "event": "nmea0183",
     "aivdo": false,
     "aivdm": true,
-    "lineDelimiter": "None"
-  }
+    "convertaivdo": false
+  },
+  "enabled": true,
+  "enableLogging": false
 }
