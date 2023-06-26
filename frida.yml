@@ -32,7 +32,6 @@
 
   roles:
     - common
-    - sailor-hat
     - influxdb
     - role: grafana
       grafana_port: 3000
@@ -86,8 +85,34 @@
       ansible.builtin.uri:
         url: http://localhost:8086/query?q=CREATE+DATABASE+boatdata
         method: POST
+
     - name: Restart signalk-server
       service: name=signalk-server state=restarted
+
+    # Install Sailor-hat (CAN & RTC)
+    - name: SH-Rpi-daemon temp dir
+      tempfile:
+        state: directory
+        suffix: _sh_rpi
+      register: sh_rpi_tmpdir
+    - name: SH-Rpi-daemon repo clone
+      git:
+        repo: https://github.com/hatlabs/SH-RPi-daemon.git
+        version: unified_v1
+        clone: yes
+        update: yes
+        dest: "{{ sh_rpi_tmpdir.path }}"
+    - name: SH-Rpi-daemon install
+      become: yes
+      shell: ./install.sh --enable CAN,RTC
+      args:
+        chdir: "{{ sh_rpi_tmpdir.path }}"
+        executable: /bin/bash
+    - name: SH-Rpi-daemon temp dir delete
+      file: 
+        path: "{{ sh_rpi_tmpdir.path }}"
+        state: absent
+      when: sh_rpi_tmpdir.path is defined
 
     # udev rules for serial-usb devices
     - lineinfile: path=/etc/udev/rules.d/98-frida-usb-devices.rules create=yes line="SUBSYSTEM==\"tty\", ATTRS{idVendor}==\"0403\", ATTRS{idProduct}==\"6001\", SYMLINK+=\"seatalk\""
