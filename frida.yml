@@ -63,6 +63,9 @@
         - plugin_name: "signalk-to-influxdb"
           plugin_config_src: conf/signalk-to-influxdb.json
           plugin_config_dst: signalk-to-influxdb.json
+        - plugin_name: "signalk-rpi-monitor"
+          plugin_config_src: conf/signalk-rpi-monitor.json
+          plugin_config_dst: signalk-rpi-monitor.json
     - hotspot
     - role: nat_router
       nat_router_local_interface: br0
